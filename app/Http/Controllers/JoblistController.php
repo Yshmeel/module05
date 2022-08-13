@@ -68,18 +68,18 @@ class JoblistController extends Controller
 
                 $totalWeight += $weight;
 
-                if($totalWeight > 100) {
-                    return view('newjob')->with([
-                        'error' => 'Total weight of all competences must not be bigger than 100'
-                    ]);
-                }
-
                 $competence = new Competences();
                 $competence->competence = $name;
                 $competence->height = $weight;
                 $competence->job_id = $job->id;
 
                 $createdCompetences[] = $competence;
+            }
+
+            if($totalWeight != 100) {
+                return view('newjob')->with([
+                    'error' => 'Total weight of all competences must equal 100'
+                ]);
             }
 
             foreach($createdCompetences as $competence) {
