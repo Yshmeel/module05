@@ -53,6 +53,7 @@
             <div class="job__item__header">
                 <div class="job__item__header__left">
                     <span>{{ $job['job'] }}</span>
+                    <b>Applicants count: {{ count($job['applications']) }}</b>
                 </div>
 
                 <div class="job__item__header__right">
@@ -107,6 +108,10 @@
                                         @endforeach
                                     </ul>
                                 </div>
+                            </div>
+
+                            <div class="job__item__slide--application--footer">
+                                <span>Registration time: {{ \Carbon\Carbon::make($application['created_at'])->format('Y-m-d H:i:s') }}</span>
                             </div>
                         </div>
                     </div>

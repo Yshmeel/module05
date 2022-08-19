@@ -23,6 +23,7 @@ class Application extends Model
         'job_id',
         'job',
         'skills',
+        'created_at',
         'competitor'
     ];
 

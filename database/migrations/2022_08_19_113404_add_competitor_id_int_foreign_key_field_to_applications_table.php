@@ -14,8 +14,8 @@ class AddCompetitorIdIntForeignKeyFieldToApplicationsTable extends Migration
     public function up()
     {
         Schema::table('applications', function (Blueprint $table) {
-            $table->bigInteger('competitor_id')->unsigned()->nullable(false);
-            $table->foreign('competitor_id')->on('competitors')->references('id')->onDelete('cascade');
+            $table->bigInteger('competitor_id', false, true);
+            $table->foreign('competitor_id')->references('id')->on('competitors');
         });
     }
 
@@ -27,7 +27,7 @@ class AddCompetitorIdIntForeignKeyFieldToApplicationsTable extends Migration
     public function down()
     {
         Schema::table('applications', function (Blueprint $table) {
-            //
+            $table->dropColumn('competitor_id');
         });
     }
 }

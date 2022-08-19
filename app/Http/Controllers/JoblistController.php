@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Competences;
 use App\Job;
 use App\Level;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,15 +13,30 @@ use Illuminate\Support\Facades\DB;
 class JoblistController extends Controller
 {
     public function index() {
-        $jobs = Job::with([
-            'competences',
-            'applications',
-            'applications.skills',
-            'applications.skills.competence',
-            'applications.skills.level',
-            'applications.competitor'
-        ])
+        $jobs = Job::query()
+            ->with([
+                'competences',
+                'applications',
+                'applications.skills',
+                'applications.skills.competence',
+                'applications.skills.level',
+                'applications.competitor'
+            ])
             ->get()
+            ->sort(function($a, $b) {
+                $aObject = $a->applications()->latest()->first() ?? null;
+                $bObject = $b->applications()->latest()->first() ?? null;
+
+                if(!$aObject) {
+                    return 1;
+                }
+
+                if(!$bObject) {
+                    return -1;
+                }
+
+                return $bObject->created_at->timestamp - $aObject->created_at->timestamp;
+            })
             ->toArray();
 
         // Calculating total weight per application
