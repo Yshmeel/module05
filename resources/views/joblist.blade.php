@@ -64,14 +64,14 @@
 
             <div class="job__item__slide">
                 @if(count($job['applications']) == 0)
-                    <span>No applications was found</span>
+                    <span>No applications were found</span>
                 @endif
 
                 @foreach($job['applications'] as $application)
                     <div class="job__item__slide--application">
                         <div class="job__item__slide--application--header">
                             <div class="job__item__slide--application--header__left">
-                                <span>{{ $application['name'] }}</span>
+                                <span>{{ $application['competitor']['name'] }}</span>
                                 <b>Weight: {{ $application['weight'] }}</b>
                             </div>
 
@@ -86,10 +86,10 @@
                             <div class="job__item__slide--application--contacts">
                                 <ul>
                                     <li>
-                                        E-mail: {{ $application['email'] }}
+                                        E-mail: {{ $application['competitor']['email'] }}
                                     </li>
                                     <li>
-                                        Phone Number: {{ $application['phone'] }}
+                                        Phone Number: {{ $application['competitor']['phone'] }}
                                     </li>
                                 </ul>
                             </div>

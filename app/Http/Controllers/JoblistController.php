@@ -5,15 +5,25 @@ namespace App\Http\Controllers;
 use App\Competences;
 use App\Job;
 use App\Level;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class JoblistController extends Controller
 {
     public function index() {
-        $jobs = Job::with(['competences', 'applications', 'applications.skills', 'applications.skills.competence', 'applications.skills.level'])
+        $jobs = Job::with([
+            'competences',
+            'applications',
+            'applications.skills',
+            'applications.skills.competence',
+            'applications.skills.level',
+            'applications.competitor'
+        ])
             ->get()
             ->toArray();
 
+        // Calculating total weight per application
         foreach($jobs as $jobId=>$job) {
             foreach($job['applications'] as $key=>$application) {
                 $totalWeight = 0;
@@ -51,40 +61,60 @@ class JoblistController extends Controller
                 ]);
             }
 
-            $job = new Job();
-            $job->setAttribute('job', $name);
-            $job->save();
+            DB::beginTransaction();
 
-            $totalWeight = 0;
+            try {
+                // Create new job in database
+                $job = new Job();
+                $job->setAttribute('job', $name);
 
-            $createdCompetences = [];
-
-            foreach($competences['name'] as $key=>$name) {
-                $weight = $competences['weight'][$key] ?? '';
-
-                if(empty($name) || empty($weight)) {
-                    continue;
+                if(!$job->save()) {
+                    throw new \Exception();
                 }
 
-                $totalWeight += $weight;
+                $totalWeight = 0;
+                $createdCompetences = [];
 
-                $competence = new Competences();
-                $competence->competence = $name;
-                $competence->height = $weight;
-                $competence->job_id = $job->id;
+                foreach($competences['name'] as $key=>$name) {
+                    $weight = $competences['weight'][$key] ?? '';
 
-                $createdCompetences[] = $competence;
-            }
+                    if(empty($name) || empty($weight)) {
+                        continue;
+                    }
 
-            if($totalWeight != 100) {
+                    $totalWeight += $weight;
+
+                    $competence = new Competences();
+                    $competence->competence = $name;
+                    $competence->height = $weight;
+                    $competence->job_id = $job->id;
+
+                    $createdCompetences[] = $competence;
+                }
+
+                // Total weight of all competences in job must be equal 100
+                if($totalWeight != 100) {
+                    DB::rollBack();
+                    return view('newjob')->with([
+                        'error' => 'Total weight of all competences must equal 100'
+                    ]);
+                }
+
+                // Bulk save created competences in database
+                foreach($createdCompetences as $competence) {
+                    if(!$competence->save()) {
+                        throw new \Exception();
+                    }
+                }
+
+            } catch(\Exception $e) {
+                DB::rollBack();
                 return view('newjob')->with([
-                    'error' => 'Total weight of all competences must equal 100'
+                    'error' => 'Internal server error'
                 ]);
             }
 
-            foreach($createdCompetences as $competence) {
-                $competence->save();
-            }
+            DB::commit();
 
             return redirect('/joblist')->with([
                 'success' => 'New job was successfully created'

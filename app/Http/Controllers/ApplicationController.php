@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application;
 use App\ApplicationSkills;
+use App\Competitor;
 use App\Job;
 use App\Level;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -11,42 +12,19 @@ use Illuminate\Http\Request;
 
 class ApplicationController extends Controller
 {
-    public function email(Request  $request) {
-        $request->validate([
-            'email' => 'required'
-        ]);
-
-        $email = $request->get('email');
-
-        try {
-            $application = Application::query()
-                ->where('email', $email)
-                ->firstOrFail();
-        } catch(ModelNotFoundException $e) {
-            return response()->json([
-                'error' => 'NOT_FOUND'
-            ], 404);
-        }
-
-        return response()->json([
-            'name' => $application->name,
-            'phone' => $application->phone
-        ]);
-    }
-
     public function existSkills(Request $request) {
         $request->validate([
-            'email' => 'required',
+            'competitor_id' => 'required',
             'job_id' => 'required'
         ]);
 
-        $email = $request->get('email');
+        $competitorId = $request->get('competitor_id');
         $jobId = $request->get('job_id');
 
         try {
             $application = Application::query()
                 ->with(['skills'])
-                ->where('email', $email)
+                ->where('competitor_id', $competitorId)
                 ->where('job_id', $jobId)
                 ->firstOrFail();
         } catch(ModelNotFoundException $e) {
@@ -75,6 +53,8 @@ class ApplicationController extends Controller
         $jobId = $request->post('job_id');
         $competences = $request->post('competences');
 
+        // @todo Add transactions here
+
         $job = Job::query()
             ->with(['competences'])
             ->where('id', $jobId)
@@ -87,16 +67,27 @@ class ApplicationController extends Controller
             ]);
         }
 
-        $existApplication = Application::query()
-            ->with(['skills'])
+        $competitor = Competitor::query()
             ->where('email', $email)
-            ->where('job_id', $jobId)
             ->first();
+
+        // If competitor does not exists, we need to create him later, using passed values
+        // Otherwise we need to request if application is alreaddy exists for $competitor->id
+        if($competitor == null) {
+            $existApplication = null;
+        } else {
+            $existApplication = Application::query()
+                ->with(['skills'])
+                ->where('competitor_id', $competitor->id)
+                ->where('job_id', $jobId)
+                ->first();
+        }
 
         $availableCompetences = array_map(function($value) {
             return $value['id'];
         }, $job['competences']);
 
+        // If any of competence skills is not available in job, output an error
         foreach($competences as $competenceId=>$competence) {
             if(!in_array($competenceId, $availableCompetences)) {
                 return redirect('/')->with([
@@ -105,6 +96,7 @@ class ApplicationController extends Controller
             }
         }
 
+        // If application exists, we need only to update his skills from passed values
         if($existApplication) {
             $updatedSkills = [];
 
@@ -126,16 +118,26 @@ class ApplicationController extends Controller
             ]);
         }
 
+        // Creating new competitor
+        if(!$competitor) {
+            $competitor = new Competitor();
 
+            $competitor->setAttribute('name', $name);
+            $competitor->setAttribute('email', $email);
+            $competitor->setAttribute('phone', $phone);
+
+            $competitor->save();
+        }
+
+        // Now we can create a new application to database
         $application = new Application();
 
-        $application->setAttribute('name', $name);
-        $application->setAttribute('email', $email);
-        $application->setAttribute('phone', $phone);
+        $application->setAttribute('competitor_id', $competitor->id);
         $application->setAttribute('job_id', $jobId);
 
         $application->save();
 
+        // Append skills by competence in application
         foreach($competences as $competenceId=>$competenceValue) {
             $skill = new ApplicationSkills();
 

@@ -22,7 +22,8 @@ class Application extends Model
         'phone',
         'job_id',
         'job',
-        'skills'
+        'skills',
+        'competitor'
     ];
 
     public function job() {
@@ -31,5 +32,9 @@ class Application extends Model
 
     public function skills() {
         return $this->hasMany(ApplicationSkills::class);
+    }
+
+    public function competitor() {
+        return $this->belongsTo(Competitor::class);
     }
 }

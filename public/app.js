@@ -2,6 +2,22 @@ jQuery(document).ready(function() {
     function applicationEmailCheckLogic($jobItem, jobId, $emailField) {
         let debounceEmailTimer = -1;
 
+        function getUserSkills(competitorId) {
+            jQuery.ajax({
+                url: '/application/skills',
+                data: {
+                    competitor_id: competitorId,
+                    job_id: jobId
+                },
+
+                success: function(msg) {
+                    msg.skills.forEach((skill) => {
+                        $jobItem.find(`#competence-${skill.competence_id}`).val(skill.level_id);
+                    });
+                },
+            });
+        }
+
         $emailField.on('change', function() {
             const fieldValue = jQuery(this).val();
 
@@ -12,7 +28,7 @@ jQuery(document).ready(function() {
             window.clearTimeout(debounceEmailTimer);
             debounceEmailTimer = setTimeout(() => {
                 jQuery.ajax({
-                    url: '/application/email',
+                    url: '/competitor/email',
                     data: {
                         email: fieldValue
                     },
@@ -22,6 +38,8 @@ jQuery(document).ready(function() {
                     },
 
                     success: function(msg) {
+                        getUserSkills(msg.id);
+
                         $jobItem.find('#name-field').val(msg.name).trigger('change');
                         $jobItem.find('#phone-field').val(msg.phone).trigger('change');
                     },
@@ -29,20 +47,6 @@ jQuery(document).ready(function() {
                     complete: function() {
                         $jobItem.find('input').prop('disabled', false);
                     }
-                });
-
-                jQuery.ajax({
-                    url: '/application/skills',
-                    data: {
-                        email: fieldValue,
-                        job_id: jobId
-                    },
-
-                    success: function(msg) {
-                        msg.skills.forEach((skill) => {
-                            $jobItem.find(`#competence-${skill.competence_id}`).val(skill.level_id);
-                        });
-                    },
                 });
             }, 600);
         });
